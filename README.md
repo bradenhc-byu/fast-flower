@@ -1,2 +1,45 @@
-# share-fast-flower
-Source control for BYU CS 462 (Distributed Systems Design) final project.
+# Brainstorming for Final Project
+## CS 462 - Distributed Systems
+Blaine Backman
+Braden Hitchcock
+Jonathon Meng
+
+### Fast Flower Delivery
+
+**Underlying Data Structures**
+- DeliveryRequest
+- Driver
+- Store
+
+**Pico Types**
+- Driver Pico
+- Store Pico
+
+**Events**
+| Domain    | Type                      | Description                                   |
+|-----------|---------------------------|-----------------------------------------------|
+| driver    | new_driver                | creates a new driver                          |
+|           | driver_added              | upon successfully creating a new driver       |
+|           | remove_driver             | removes a driver                              |
+|           | driver_removed            | upon successfully removing a driver           |
+|           | update_profile            | changes a driver's profile information        |
+|           | profile_updated           | upon successfully updating profile info       |
+|           | register_request          | requests driver registration with a store     |
+|           | register_request_accepted | upon approving a driver registration request  |
+|           | register_request_denied   | upon denying a driver registration request    |
+| delivery  | new_request               | creates a new delivery request                |
+|           | request_created           | upon successfully creating a new delivery req.|
+|           | cancel_request            | cancels a previously created request          |
+|           | request_canceled          | upon successfully canceling a request         |
+|           | accept_request            | when a driver accepts a request               |
+|           | decline_request           | when a driver declines a request              |
+|           | request_answer_received   | driver acknowledges request and availability  |
+|           | assign_request            | a decision about who should deliver is made   |
+|           | request_assigned          | assigns a request to a driver                 |
+|           | request_completed         | request has been successfully delivered       |
+
+**API Functions**
+| Ruleset           | Function          | Result                                            |
+|-------------------|-------------------|---------------------------------------------------|
+| driver_manager    | drivers           | a list of drivers registered with the manager     |
+| request_storage   | delivery_requests | a list of current delivery requests (filterable)  |
