@@ -1,8 +1,8 @@
 # Brainstorming for Final Project
 ## CS 462 - Distributed Systems
-Blaine Backman
-Braden Hitchcock
-Jonathon Meng
+Blaine Backman  
+Braden Hitchcock  
+Jonathon Meng   
 
 ### Fast Flower Delivery
 
@@ -16,6 +16,7 @@ Jonathon Meng
 - Store Pico
 
 **Events**
+
 | Domain    | Type                      | Description                                   |
 |-----------|---------------------------|-----------------------------------------------|
 | driver    | new_driver                | creates a new driver                          |
@@ -39,6 +40,7 @@ Jonathon Meng
 |           | request_completed         | request has been successfully delivered       |
 
 **API Functions**
+
 | Ruleset           | Function          | Result                                            |
 |-------------------|-------------------|---------------------------------------------------|
 | driver_manager    | drivers           | a list of drivers registered with the manager     |
