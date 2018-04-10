@@ -19,3 +19,17 @@ reach consensus on the status of `DriverRequest`s.
 | `gossip` | `heartbeat` | Generate a new message to gossip about with peers |
 | `gossip` | `rumor` | Store rumor message internally |
 | `gossip` | `seen` | Find messages the sending peer may not have and respond with them |
+
+
+## `google_maps` 
+Used to get the distance between incoming position and the rulesets current position.
+
+#### Events 
+| Domain | Type | Attrs | Description |
+|--------|------|-------|-------------|
+| `update` | `position` | "lat", "lng" | Change the lat,lng position for the entity |
+
+#### Queries
+| Name | args | Description | Example |
+|--------|------|-------------|------|
+| `getDistanceFrom` | "lat", "lng" | Returns an object with information about how far the passed in position is from the entity's current position | { "text": "34.1 km", "value": 34100 }
