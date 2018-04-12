@@ -90,7 +90,7 @@ ruleset flower_shop {
           pre {
             subs = subscription
             subs_attrs = subs{"attributes"}
-            delivery = ent:attr("delivery")
+            delivery = event:attr("delivery")
           }
           if true then
             event:send({
