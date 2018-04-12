@@ -16,12 +16,13 @@ ruleset driver {
         name"Driver Profile"
         author "Blaine Backman, Braden Hitchcock, Jon Meng"
         description <<
-            Contains profile information about a driver
+            Contains profile information and event handlers for driver picos in the fast flower
+            delivery problem
         >>
         logging on
         use module google_maps alias maps
         use module request_store alias requests
-        shares __testing, requests, get_request
+        shares __testing, requests, get_request, location, eci
     }
 
     global {

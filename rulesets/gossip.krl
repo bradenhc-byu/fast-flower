@@ -34,6 +34,8 @@
  *
  *  ent:interval = 10
  *
+ *  ent:my_last_message = {}
+ *
  */
 ruleset gossip {
     meta {
@@ -45,7 +47,7 @@ ruleset gossip {
         >>    
         logging on
         use module io.picolabs.subscription alias subscription
-        use module driver
+        use module request_store alias rs
         shares __testing
     }
 
@@ -71,6 +73,22 @@ ruleset gossip {
             |
                 // Prepare a seen message response
                 generate_seen_message(ent:state.keys(), {})
+        }
+
+        /**
+         * Uses the temperature_store ruleset to get the most recent temperature information for
+         * this sensor pico. If there is temperature data in the store, then it will create a rumor
+         * message and return it. Otherwise it will return null.
+         */
+        create_my_message = function(){
+            request = rs:next_unsent_request()
+            ( not request.isnull() ) =>
+                { "message_id": meta:picoId + ":" + ent:send_sequence_number,
+                  "driver_id": meta:picoId,
+                  "request": request
+                }
+            |
+                null
         }
 
         /**
@@ -279,7 +297,6 @@ ruleset gossip {
             peer = get_peer().klog("peer selected")
             gossip_type = ((random:integer(20) <= 12) => "rumor" | "seen").klog("gossip type")
             message = prepare_message(gossip_type).klog("message")
-            message = ( not message.isnull() ) => message | event:attr("request")
             valid = not peer.isnull() && not message.isnull()
         }
         // Send the message to the chosen subscriber on the gossip topic
@@ -291,16 +308,31 @@ ruleset gossip {
             }})
         // Schedule the next heartbeat event
         always {
+            // Schedule the next heartbeat event
+            schedule gossip event "heartbeat" at time:add(time:now(), {"seconds": ent:interval});
             // Attempt to add a new temperature to my storage
-            raise gossip event "my_message_created" attributes 
-                {"message": event:attr("request")}
+            raise gossip event "create_message" attributes {}
+        }
+    }
+
+    rule create_message {
+        select when gossip create_message 
+        pre {
+            message = create_my_message()
+        }
+        if not message.isnull() then noop()
+        fired {
+            raise gossip event "message_created" attributes {"message": message };
+            raise delivery event "dequeue_unsent_request" attributes {}
         }
     }
 
     rule add_my_message {
-        select when gossip my_message_created where not event:attr("message").isnull()
+        select when gossip message_created where not event:attr("message").isnull()
         pre {
-            valid = true
+            // Make sure it isn't the same as our last message
+            same_as_last = ent:my_last_message{["request", "id"} == event:attr("message"){["request", "id"]}
+            valid = not same_as_last
         }
         if valid.klog("can add message") then noop()
         fired {
@@ -308,6 +340,8 @@ ruleset gossip {
             ent:messages{meta:picoId} := ent:messages{meta:picoId}.defaultsTo([]).append([event:attr("message")]);
             // Increment my send_sequence_number
             ent:send_sequence_number := ent:send_sequence_number + 1;
+            // Update our last message 
+            ent:my_last_message := event:attr("message")
         }
     }
 
@@ -323,7 +357,9 @@ ruleset gossip {
             peer_id = parts[0].klog("peer id")
             sequence_number = parts[1].as("Number").klog("message sequence number")
             received = append_received(peer_id, sequence_number).klog("current received state")
-            should_add = ent:messages{peer_id}.filter(function(x){x{"timestamp"} == message{"timestamp"}}).length() == 0
+            should_add = ent:messages{peer_id}.filter(function(x){
+                    x{["request", "id"]} == message{["request", "id"]}
+                }).length() == 0
         }
         if should_add.klog("message not already stored") then noop()
         fired {
@@ -332,8 +368,8 @@ ruleset gossip {
             // Update the state 
             ent:state{peer_id} := ent:state{peer_id}.defaultsTo({"seen": {}, "received": []});
             ent:state{[peer_id, "received"]} := received;
-            // Create a new entry in our request store 
-            raise delivery event "new_gossip_request" attributes {"request": message{"request"}}
+            // Notify the request store we have a new message 
+            raise delivery event "new_request" attributes {"request": message{"request"} }
         }
     }
 
@@ -371,9 +407,13 @@ ruleset gossip {
         fired {
             ent:interval := 5;
             ent:send_sequence_number := 0;
-            ent:my_last_temperature_message := {};
+            ent:my_last_message := {};
             ent:messages := {};
             ent:state := {}
+        }
+        finally {
+            // Schedule the next heartbeat event
+            schedule gossip event "heartbeat" at time:add(time:now(), {"seconds": ent:interval});
         }
     }
 

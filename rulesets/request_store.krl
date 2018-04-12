@@ -6,12 +6,39 @@
  *          }
  *      }
  *  }
+ *
+ *  ent:unsent_requests = []
  */
 ruleset request_store {
+    meta {
+        name "Request Storage"
+        author "Blaine Backman, Braden Hitchcock, Jon Meng"
+        logging on
+        provides requests, next_unsent_request
+        shares __testing, requests, next_unsent_request
+    }
 
     global {
+        // Testing
+        __testing = {
+            "queries": [
+                {"name": "requests",
+                 "args": [ ]
+                },
+                { "name": "next_unsent_request",
+                  "args": [ ]
+                }
+            ],
+            "events": [
+                
+            ]
+        }
         requests = function(){
             ent:requests
+        }
+
+        next_unsent_request = function(){
+            ent:unsent_requests.head()
         }
     }
 
@@ -26,25 +53,8 @@ ruleset request_store {
         fired {
             ent:requests{request{"store_id"}} := {};
             ent:requests{request{"store_id"}} := ent:requests{request{"store_id"}}.put(request{"id"}, request);
-            // now we need to start gossiping about it 
-            raise gossip event "heartbeat" attributes {
-                "request": request
-            }
+            ent:unsent_requests := ent:unsent_requests.append([request])
         } 
-    }
-
-    rule create_gossip_request {
-        select when delivery new_gossip_request
-        pre {
-            // make sure we don't already have that request
-            request = event:attr("request")
-            has_request = not ent:requests{[request{"store_id"}, request{"id"}]}
-        }
-        if not has_request then noop()
-        fired {
-            ent:requests{request{"store_id"}} := {};
-            ent:requests{request{"store_id"}} := ent:requests{request{"store_id"}}.put(request{"id"}, request);
-        }
     }
 
     rule update_request {
@@ -86,11 +96,24 @@ ruleset request_store {
         }
     }
 
+    rule dequeue_unsent {
+        select when delivery dequeue_unsent_request
+        pre {
+            request_to_dequeue = ent:unsent_requests.length() != 0
+        }
+        if request_to_dequeue then noop()
+        fired {
+            ent:unsent_requests := ent:unsent_requests.tail()
+        }
+
+    }
+
     rule install {
         select when wrangler ruleset_added where rids >< meta:rid
-        if ent:requests.isnull() then noop()
+        if ent:requests.isnull() || ent:unsent_requests.isnull() then noop()
         fired {
-            ent:requests := {}
+            ent:requests := {};
+            ent:unsent_requests := []
         }
     }
 }
