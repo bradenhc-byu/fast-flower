@@ -9,8 +9,11 @@
  * The rumor messages are strucured as follows:
  *
  *  {"message_id": "picoid:sequencenumber",
- *   "type": "request/response",
- *   "driver": "responding driver pico id"}
+ *   "driver_id": "picoid",
+ *   "request": {
+ *      // request object sent by store
+ *    }
+ *  }
  *
  * The following includes a description of the entity variables in this ruleset:
  *
@@ -29,9 +32,7 @@
  *      ]
  *  }
  *
- *  ent:interval = 30
- *
- *  ent:my_last_temperature_message = {}
+ *  ent:interval = 10
  *
  */
 ruleset gossip {
@@ -44,6 +45,7 @@ ruleset gossip {
         >>    
         logging on
         use module io.picolabs.subscription alias subscription
+        use module driver
         shares __testing
     }
 
@@ -69,23 +71,6 @@ ruleset gossip {
             |
                 // Prepare a seen message response
                 generate_seen_message(ent:state.keys(), {})
-        }
-
-        /**
-         * Uses the temperature_store ruleset to get the most recent temperature information for
-         * this sensor pico. If there is temperature data in the store, then it will create a rumor
-         * message and return it. Otherwise it will return null.
-         */
-        create_my_message = function(){
-            latest_temperature = ts:temperatures()[0].klog("latest temperature");
-            ( not latest_temperature.isnull() ) =>
-                { "message_id": meta:picoId + ":" + ent:send_sequence_number,
-                  "sensor_id": meta:picoId,
-                  "temperature": ts:temperatures()[0]{"temperature"},
-                  "timestamp": ts:temperatures()[0]{"timestamp"}
-                }
-            |
-                null
         }
 
         /**
@@ -203,7 +188,7 @@ ruleset gossip {
         get_score = function(peer_id){
             score = 0;
             // Compare my send sequence number with what they have for me
-            score = score + ent:state{[peer_id, "seen", meta:picoId]}.defaultsTo(0) - ent:send_sequence_number;
+            score = score + ent:state{[peer_id, "seen", meta:picoId]}.defaultsTo(0) - ent:send_sequence_number - 1;
             // Compare what I've seen to what they have seen and calculate the score
             add_score = function(seen, score){
                 score = score + ent:state{[peer_id, "seen", seen.head()]} - get_received(seen.head());
@@ -294,7 +279,8 @@ ruleset gossip {
             peer = get_peer().klog("peer selected")
             gossip_type = ((random:integer(20) <= 12) => "rumor" | "seen").klog("gossip type")
             message = prepare_message(gossip_type).klog("message")
-            valid = not peer.isnull()
+            message = ( not message.isnull() ) => message | event:attr("request")
+            valid = not peer.isnull() && not message.isnull()
         }
         // Send the message to the chosen subscriber on the gossip topic
         if valid.klog("valid heartbeat") then
@@ -305,20 +291,16 @@ ruleset gossip {
             }})
         // Schedule the next heartbeat event
         always {
-            // Schedule the next heartbeat event
-            schedule gossip event "heartbeat" at time:add(time:now(), {"seconds": ent:interval});
             // Attempt to add a new temperature to my storage
             raise gossip event "my_message_created" attributes 
-                {"message": create_my_message()}
+                {"message": event:attr("request")}
         }
     }
 
     rule add_my_message {
         select when gossip my_message_created where not event:attr("message").isnull()
         pre {
-            // Make sure it isn't the same as our last message
-            same_as_last = ent:my_last_temperature_message{"timestamp"} == event:attr("message"){"timestamp"}
-            valid = not same_as_last
+            valid = true
         }
         if valid.klog("can add message") then noop()
         fired {
@@ -326,8 +308,6 @@ ruleset gossip {
             ent:messages{meta:picoId} := ent:messages{meta:picoId}.defaultsTo([]).append([event:attr("message")]);
             // Increment my send_sequence_number
             ent:send_sequence_number := ent:send_sequence_number + 1;
-            // Update our last message 
-            ent:my_last_temperature_message := event:attr("message")
         }
     }
 
@@ -351,7 +331,9 @@ ruleset gossip {
             ent:messages{peer_id} := ent:messages{peer_id}.defaultsTo([]).append([message]);
             // Update the state 
             ent:state{peer_id} := ent:state{peer_id}.defaultsTo({"seen": {}, "received": []});
-            ent:state{[peer_id, "received"]} := received
+            ent:state{[peer_id, "received"]} := received;
+            // Create a new entry in our request store 
+            raise delivery event "new_gossip_request" attributes {"request": message{"request"}}
         }
     }
 
@@ -393,9 +375,6 @@ ruleset gossip {
             ent:messages := {};
             ent:state := {}
         }
-        finally {
-            schedule gossip event "heartbeat" at time:add(time:now(), {"seconds": ent:interval})
-        }
     }
 
     /**
@@ -419,24 +398,24 @@ ruleset gossip {
     rule introduce_existing_node {
         select when gossip introduce_peer 
         pre {
-            sensor_id = event:attr("sensor_id").klog("sensor id")
-            sensor_eci = event:attr("eci").klog("sensor eci")
-            sensor_pico_id = engine:getPicoIDByECI(sensor_eci)
-            valid = not sensor_id.isnull() && not sensor_eci.isnull()
+            peer_id = event:attr("peer_id").klog("peer id")
+            peer_eci = event:attr("eci").klog("peer eci")
+            peer_pico_id = engine:getPicoIDByECI(peer_eci)
+            valid = not peer_id.isnull() && not peer_eci.isnull()
         }
         if valid.klog("valid sensor introduction") then
             noop()
         fired {
             // First store the sensor 
             ent:state := ent:state.defaultsTo({});
-            ent:state{sensor_pico_id} := {"seen": {}, "received": []};
+            ent:state{peer_pico_id} := {"seen": {}, "received": []};
             // Raise an event to subscribe to the sensor pico 
             raise wrangler event "subscription" attributes
-                { "name" : "gossipSensor" + sensor_id,
+                { "name" : "gossipNode" + peer_id,
                   "Rx_role": "node",
                   "Tx_role": "node",
                   "channel_type": "subscription",
-                  "wellKnown_Tx" : sensor_eci
+                  "wellKnown_Tx" : peer_eci
                 }
         }
         else {
@@ -448,7 +427,10 @@ ruleset gossip {
         }
     }
 
-    // This rule will automatically accept any incoming subscription requests
+    /** 
+     * Automatically accept any inbound subscription requests. This isn't a very secure way to do
+     * this, but for the purposes of our final project it fits our needs.
+     */
     rule auto_accept {
         select when wrangler inbound_pending_subscription_added
         fired {

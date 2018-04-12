@@ -6,19 +6,12 @@ Implementation of a simple gossip protocol, similar to what was done in Lab 9,  
 `DriverRequest` messages are passed among Peers and Stores, allowing all nodes in the system to 
 reach consensus on the status of `DriverRequest`s.
 
-#### Events Generated
-| Domain | Type | Description |
-|--------|------|-------------|
-| `gossip` | `heartbeat` | Generate a new message to gossip about with peers |
-| `gossip` | `rumor` | Rumor message about `DriverRequest` status |
-| `gossip` | `seen` | Gossip current node state to peers to help reach consensus |
-
-#### Events Responded To
-| Domain | Type | Description |
-|--------|------|-------------|
-| `gossip` | `heartbeat` | Generate a new message to gossip about with peers |
-| `gossip` | `rumor` | Store rumor message internally |
-| `gossip` | `seen` | Find messages the sending peer may not have and respond with them |
+#### Events
+| Domain | Type | Attrs | Description |
+|--------|------|-------|-------------|
+| `gossip` | `heartbeat` | | Generate a new message to gossip about with peers |
+| `gossip` | `rumor` | | Rumor message about `DriverRequest` status |
+| `gossip` | `seen` | | Gossip current node state to peers to help reach consensus |
 
 
 ## `google_maps` 
@@ -50,4 +43,16 @@ Used to get manage the lifecycle of a delivery request.
 | `delivery` | `accept_request` | "id", "driver" | Assigns driver to request, notifies shop by SMS. Returns error if taken or non-existant |
 | `delivery` | `finish_delivery` | "id" | Marks delivery request as completed. Notifies the shop by SMS |
 
+
+## `driver_profile`
+
+#### Events
+| Domain | Type | Attrs | Description |
+|--------|------|-------|-------------|
+
+
+#### Queries
+| Name | args | Description | Example |
+|--------|------|-------------|------|
+| `getAllDelivers` | "None" | Returns the store's current list of delivery objects
 
