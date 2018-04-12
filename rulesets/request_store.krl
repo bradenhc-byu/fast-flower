@@ -1,4 +1,12 @@
 /**
+ * Request Store
+ * BYU CS 462 - Distributed Systems Deisgn
+ *
+ * Stores requests that are available to this driver. "Available" requests are determined using
+ * this driver's location and the allowed_distance away from the store issuing the delivery request.
+ *
+ * The internal entity variables are summarized below: 
+ *
  *  ent:requests = {
  *      "store id": {
  *          "request id": {
@@ -8,6 +16,9 @@
  *  }
  *
  *  ent:unsent_requests = []
+ *
+ * The ent:unsent_requests variable is used by the gossip protocol to determine which messages
+ * this node int he gossip network still needs to send.
  */
 ruleset request_store {
     meta {
@@ -34,15 +45,24 @@ ruleset request_store {
                 
             ]
         }
+
+        // Get the requests entity variable to view all requests available to this user
         requests = function(){
             ent:requests
         }
 
+        // The unsent requests entity variable is used by the gossip protocol to get the next 
+        // message to send. It essentially functions like a queue. This function gets the next
+        // available message for the protocol to send.
         next_unsent_request = function(){
             ent:unsent_requests.head()
         }
     }
 
+    /**
+     * Creates a new request entry in the internal storage IF the driver is within the allowed
+     * distance.
+     */
     rule create_request {
         select when delivery new_request
         pre {
@@ -60,6 +80,10 @@ ruleset request_store {
         } 
     }
 
+    /**
+     * Allows a request already present in storage to be updated. Not currently used by our system,
+     * but it is available.
+     */
     rule update_request {
         select when delivery update_request
         pre {
@@ -73,6 +97,12 @@ ruleset request_store {
         }
     }
 
+    /**
+     * If a driver attempts to accept a request from a store that is invalid (i.e. it has been
+     * cancelled or another driver already got the job) then the store will respond with an
+     * "delivery/request_invalid" event. We should remove the event from our storage in response
+     * to this so we don't make the same mistake.
+     */
     rule remove_invalid_request {
         select when delivery request_invalid
         pre {
@@ -86,6 +116,9 @@ ruleset request_store {
         }
     }
 
+    /**
+     * Removes a request with the associated store pico id and request id from storage.
+     */
     rule remove_request {
         select when delivery remove_request
         pre {
@@ -99,6 +132,10 @@ ruleset request_store {
         }
     }
 
+    /**
+     * After the gossip protocol sends the next message, it needs to remove it from the
+     * "queue" in this ruleset. This event gives the gossip protocol the ability to do that.
+     */
     rule dequeue_unsent {
         select when delivery dequeue_unsent_request
         pre {
@@ -111,6 +148,9 @@ ruleset request_store {
 
     }
 
+    /**
+     * When the ruleset is first installed, we need to initialize the entity variables.
+     */
     rule install {
         select when wrangler ruleset_added where rids >< meta:rid
         if ent:requests.isnull() || ent:unsent_requests.isnull() then noop()

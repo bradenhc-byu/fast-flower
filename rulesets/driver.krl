@@ -1,8 +1,9 @@
 /**
- * Driver Profile
+ * Driver
  * BYU CS 462 - Distributed Systems Design
  *
- * This rulesets holds on to profile information about a driver. The entity variables are described
+ * This rulesets holds on to profile information about a driver. It also contains rules that select
+ * on events that require a driver's attention. The entity variables for the ruleset are described
  * below:
  *
  * ent:eci = "aheugiadsfhaejd" // eci identifying this driver
@@ -64,16 +65,17 @@ ruleset driver {
             requests:requests(){[store, id]}
         }
 
-        // Get the location of the driver 
-        location = function(){
-            ent:location.defaultsTo({"lat": 0, "lng": 0})
-        }
-
+        // Get the available eci of the driver (identifier)
         eci = function(){
             ent:eci.defaultsTo(meta:eci)
         }
     }
 
+    /**
+     * When a store generates a new request, it will send a "driver/receive_request" event to all
+     * of the drivers attached to it via subscriptions. This rule selects on that event and
+     * stores the new request.
+     */
     rule receive_request {
         select when driver receive_request
         pre {
@@ -85,13 +87,16 @@ ruleset driver {
         }
     }
 
-    // event attributes = {"store": "store_pico_id", "delivery_id": "delivery_request_id"}
+    /**
+     * If a driver decides to accept a request, this event will be raised, which will send the
+     * response back to the store who issued the request.
+     */
     rule accept_request {
         select when driver accept_request
         pre{
             // get the eci of the store whose request we are accepting
             // we also need the id of the request
-            request = get_request(event:attr("store", event:attr("delivery_id")))
+            request = get_request(event:attr("store"), event:attr("delivery_id"))
             store_eci = request{"store_eci"}
             request_id = request{"id"}
             valid = not store_eci.isnull() && not request_id.isnull()
@@ -107,12 +112,16 @@ ruleset driver {
         }
     }
 
+    /**
+     * When a driver completes a request they have been assigned, they need to notify the store
+     * so the store can notify its owners with an SMS message.
+     */
     rule complete_request {
         select when driver complete_request
         pre {
             // get the eci of the store whose request we are accepting
             // we also need the id of the request
-            request = get_request(event:attr("store", event:attr("delivery_id")))
+            request = get_request(event:attr("store"), event:attr("delivery_id"))
             store_eci = request{"store_eci"}
             request_id = request{"id"}
             valid = not store_eci.isnull() && not request_id.isnull()
@@ -130,6 +139,10 @@ ruleset driver {
         }
     }
 
+    /**
+     * This allows us to update the available ECI of the driver (not that we need to normally, but
+     * it gives us access for debugging)
+     */
     rule update_eci {
         select when driver update_eci
         pre {
@@ -141,6 +154,11 @@ ruleset driver {
         }
     }
 
+    /** 
+     * This allows us to update the location of the driver, which is stored inside of the 
+     * "google_maps" ruleset. Essentially this just reroutes the event to the "google_maps"
+     * ruleset.
+     */
     rule update_location {
         select when driver update_location
         pre {
@@ -154,6 +172,10 @@ ruleset driver {
         }
     }
 
+    /**
+     * This initializes the internal entity variables for the ruleset when it is first installed
+     * inside of the engine.
+     */
     rule install {
         select when wrangler ruleset_added where rids >< meta:rid
         if ent:location.isnull() || ent:eci.isnull() then noop()
