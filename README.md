@@ -31,13 +31,8 @@ Jonathon Meng
 | delivery  | new_request               | creates a new delivery request                |
 |           | request_created           | upon successfully creating a new delivery req.|
 |           | cancel_request            | cancels a previously created request          |
-|           | request_canceled          | upon successfully canceling a request         |
 |           | accept_request            | when a driver accepts a request               |
-|           | decline_request           | when a driver declines a request              |
-|           | request_answer_received   | driver acknowledges request and availability  |
-|           | assign_request            | a decision about who should deliver is made   |
-|           | request_assigned          | assigns a request to a driver                 |
-|           | request_completed         | request has been successfully delivered       |
+|           | finish_delivery           | request has been successfully delivered       |
 
 **API Functions**
 
