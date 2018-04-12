@@ -5,8 +5,6 @@
  * This rulesets holds on to profile information about a driver. The entity variables are described
  * below:
  *
- * ent:location = {"lat": ... , "lng": ... }
- *
  * ent:eci = "aheugiadsfhaejd" // eci identifying this driver
  *
  * 
@@ -141,7 +139,7 @@ ruleset driver {
         }
         if valid then noop()
         fired {
-            ent:location := {"lat": lat, "lng": lng }
+            raise update event "position" attributes event:attrs
         }
     }
 
@@ -149,7 +147,6 @@ ruleset driver {
         select when wrangler ruleset_added where rids >< meta:rid
         if ent:location.isnull() || ent:eci.isnull() then noop()
         fired {
-            ent:location := {"lat": 0, "lng": 0};
             ent:eci := meta:eci
         }
     }

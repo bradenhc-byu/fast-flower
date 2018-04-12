@@ -14,6 +14,7 @@ ruleset request_store {
         name "Request Storage"
         author "Blaine Backman, Braden Hitchcock, Jon Meng"
         logging on
+        use module google_maps alias maps
         provides requests, next_unsent_request
         shares __testing, requests, next_unsent_request
     }
@@ -48,8 +49,10 @@ ruleset request_store {
             // make sure we don't already have that request
             request = event:attr("request")
             has_request = not ent:requests{[request{"store_id"}, request{"id"}]}
+            distance = maps:getDistanceFrom(request{"store_lat"}, request{"store_long"})
+            valid = distance{"value"} <= request{"allowed_distance"}.as("Number")
         }
-        if not has_request then noop()
+        if not has_request && valid then noop()
         fired {
             ent:requests{request{"store_id"}} := {};
             ent:requests{request{"store_id"}} := ent:requests{request{"store_id"}}.put(request{"id"}, request);

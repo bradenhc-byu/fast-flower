@@ -81,7 +81,7 @@ ruleset gossip {
          * message and return it. Otherwise it will return null.
          */
         create_my_message = function(){
-            request = rs:next_unsent_request()
+            request = rs:next_unsent_request();
             ( not request.isnull() ) =>
                 { "message_id": meta:picoId + ":" + ent:send_sequence_number,
                   "driver_id": meta:picoId,
@@ -331,7 +331,7 @@ ruleset gossip {
         select when gossip message_created where not event:attr("message").isnull()
         pre {
             // Make sure it isn't the same as our last message
-            same_as_last = ent:my_last_message{["request", "id"} == event:attr("message"){["request", "id"]}
+            same_as_last = ent:my_last_message{["request", "id"]} == event:attr("message"){["request", "id"]}
             valid = not same_as_last
         }
         if valid.klog("can add message") then noop()
