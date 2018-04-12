@@ -86,7 +86,7 @@ ruleset flower_shop {
 	// Assumes that all subscriptions are just with drivers and they are already connected
 	rule request_created {
 	      select when delivery request_created
-	      foreach Subscriptions:outbound() setting (subscription)
+	      foreach Subscriptions:established("Tx_role", "driver") setting (subscription)
           pre {
             subs = subscription
             subs_attrs = subs{"attributes"}
