@@ -35,12 +35,12 @@ ruleset driver {
                 }
             ],
             "events": [
-                {"domain": "delivery",
+                {"domain": "driver",
                  "type": "accept_request",
                  "attrs": [ "store", "delivery_id" ]
                 },
-                {"domain": "delivery",
-                 "type": "complete",
+                {"domain": "driver",
+                 "type": "complete_request",
                  "attrs": [ "delivery_id" ]
                 },
                 {"domain": "driver",
@@ -74,9 +74,20 @@ ruleset driver {
         }
     }
 
+    rule receive_request {
+        select when driver receive_request
+        pre {
+            request = event:attr("request")
+        }
+        if not request.isnull() then noop()
+        fired {
+            raise delivery event "new_request" attributes { "request": request }
+        }
+    }
+
     // event attributes = {"store": "store_pico_id", "delivery_id": "delivery_request_id"}
     rule accept_request {
-        select when delivery accept_request
+        select when driver accept_request
         pre{
             // get the eci of the store whose request we are accepting
             // we also need the id of the request
@@ -97,7 +108,7 @@ ruleset driver {
     }
 
     rule complete_request {
-        select when delivery complete 
+        select when driver complete_request
         pre {
             // get the eci of the store whose request we are accepting
             // we also need the id of the request
@@ -107,7 +118,7 @@ ruleset driver {
             valid = not store_eci.isnull() && not request_id.isnull()
         }
         if valid then
-            event:send({"eci": store_eci, "domain": "driver", "type": "finish_delivery", "attrs": {
+            event:send({"eci": store_eci, "domain": "delivery", "type": "finish_delivery", "attrs": {
                 "delivery_id": request_id
             }})
         fired {
