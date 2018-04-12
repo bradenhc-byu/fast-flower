@@ -94,7 +94,7 @@ ruleset flower_shop {
           }
           if true then
             event:send({
-              "eci": subs_attrs{"outbound_eci"},
+              "eci": subs_attrs{"Tx"},
               "eid": "delivery",
               "domain": "driver",
               "type": "receive_request",
