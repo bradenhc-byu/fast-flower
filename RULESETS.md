@@ -47,8 +47,7 @@ Used to get manage the lifecycle of a delivery request.
 |--------|------|-------|-------------|
 | `delivery` | `new_request` | "id", "reward", "destination" | Creates a new delivery request |
 | `delivery` | `cancel_request` | "id" | Cancels delivery request, removes from list of requests |
-| `delivery` | `accept_request` | "id", "driver" | Allows a driver to accept a request, notifies shop by SMS.
-Returns an error if request does not exist, or request is already assigned |
+| `delivery` | `accept_request` | "id", "driver" | Assigns driver to request, notifies shop by SMS. Error is taken or non-existant |
 | `delivery` | `finish_delivery` | "id" | Marks delivery request as completed. Notifies the shop by SMS |
 
 
