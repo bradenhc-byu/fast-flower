@@ -88,13 +88,11 @@ ruleset flower_shop {
 	      select when delivery request_created
 	      foreach Subscriptions:established("Tx_role", "driver") setting (subscription)
           pre {
-            subs = subscription
-            subs_attrs = subs{"attributes"}
             delivery = event:attr("delivery")
           }
           if true then
             event:send({
-              "eci": subs_attrs{"Tx"},
+              "eci": subscription{"Tx"},
               "eid": "delivery",
               "domain": "driver",
               "type": "receive_request",
