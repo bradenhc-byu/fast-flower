@@ -33,3 +33,22 @@ Used to get the distance between incoming position and the rulesets current posi
 | Name | args | Description | Example |
 |--------|------|-------------|------|
 | `getDistanceFrom` | "lat", "lng" | Returns an object with information about how far the passed in position is from the entity's current position | { "text": "34.1 km", "value": 34100 }
+
+## `flower_shop` 
+Used to get manage the lifecycle of a delivery request.
+
+#### Queries
+| Name | args | Description | Example |
+|--------|------|-------------|------|
+| `getAllDelivers` | "None" | Returns the store's current list of delivery objects
+
+#### Events 
+| Domain | Type | Attrs | Description |
+|--------|------|-------|-------------|
+| `delivery` | `new_request` | "id", "reward", "destination" | Creates a new delivery request |
+| `delivery` | `cancel_request` | "id" | Cancels delivery request, removes from list of requests |
+| `delivery` | `accept_request` | "id", "driver" | Allows a driver to accept a request, notifies shop by SMS.
+Returns an error if request does not exist, or request is already assigned |
+| `delivery` | `finish_delivery` | "id" | Marks delivery request as completed. Notifies the shop by SMS |
+
+
