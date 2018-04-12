@@ -60,6 +60,7 @@ ruleset flower_shop {
             // ID is really only used by the store to keep track of their deliveries
             id = event:attr("id")
             delivery = { "id": event:attr("id"), "store_id": meta:picoId,
+                         "store_eci": meta:eci,
                          "store_lat": store_lat, "store_lng": store_lng,
                          "allowed_distance": allowed_distance,
                          "reward": event:attr("reward"),
@@ -115,6 +116,8 @@ ruleset flower_shop {
 	      }
 	}
 	
+    // Send back the event to the Pico using the event eci
+    // Raise the event delivery request_invalid on whoever sent invalid request
 	rule accept_request {
 	      select when delivery accept_request
 	      pre {
@@ -124,12 +127,18 @@ ruleset flower_shop {
 	        exists = ent:deliveries >< delivery_id
 	      }
 	      if not exists then
-	        // Message Cancelled
-	        send_directive("shop", {"Invalid Request": "Request does not exist"})
+	       // Message Cancelled
+           event:send({
+            "eci": driver,
+            "eid": "delivery",
+            "domain": "delivery",
+            "type": "request_invalid",
+            "attrs": {"store_id": meta:picoId, "delivery_id": delivery_id}
+           })
         notfired {
           raise delivery event "assign_request"
               attributes {"delivery_id": delivery_id, "driver": driver}
-        }
+        } 
 	}
 	
 	rule assign_delivery {
@@ -141,26 +150,39 @@ ruleset flower_shop {
 	        driver = event:attr("driver")
 	      }
 	      if taken then
-	        // Delivery taken
-	        send_directive("shop", {"Invalid Request": "Delivery request taken"})
+	       event:send({
+            "eci": driver,
+            "eid": "delivery",
+            "domain": "delivery",
+            "type": "request_invalid",
+            "attrs": {"store_id": meta:picoId, "delivery_id": delivery_id}
+          })
+	        
 	      notfired {
 	        ent:deliveries{[delivery_id, "driver"]} := driver;
 	        ent:deliveries{[delivery_id, "accepted"]} := true;
 	        // send SMS to the store
 	        raise shop event "message"
               attributes {"message": "Driver " + driver + " accepted delivery " + delivery_id}
-	      }
+	      } 
 	}
 	
 	rule finish_delivery {
 	     select when delivery finish_delivery
 	     pre {
+         driver = event:attr("driver")
 	       delivery_id = event:attr("delivery_id")
 	       exists = ent:deliveries >< delivery_id
 	     }
 	     if not exists then
-	        // Delivery does not exist
-	        send_directive("shop", {"Invalid Request": "Request does not exist"})
+	      // Delivery does not exist
+          event:send({
+            "eci": driver,
+            "eid": "delivery",
+            "domain": "delivery",
+            "type": "request_invalid",
+            "attrs": {"store_id": meta:picoId, "delivery_id": delivery_id}
+          })
 	     notfired {
 	       ent:deliveries{[delivery_id, "completed"]} := true;
 	       // send SMS to the store
