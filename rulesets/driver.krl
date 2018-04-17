@@ -99,10 +99,12 @@ ruleset driver {
             request = get_request(event:attr("store"), event:attr("delivery_id")).klog("request")
             store_eci = request{"store_eci"}.klog("store eci")
             request_id = request{"id"}.klog("request id")
+            request{"driver"} = eci()
+            request{"accepted"} = true
             valid = not store_eci.isnull() && not request_id.isnull()
         }
         if valid.klog("valid") then
-            event:send({"eci": store_eci, "domain": "driver", "type": "accept_request", "attrs": {
+            event:send({"eci": store_eci, "domain": "delivery", "type": "accept_request", "attrs": {
                 "delivery_id": request_id,
                 "driver": eci()
             }})
