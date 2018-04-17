@@ -295,7 +295,7 @@ ruleset gossip {
         pre {
             // Determine the type of message to gossip (seen or rumor)
             peer = get_peer().klog("peer selected")
-            gossip_type = ((random:integer(20) <= 12) => "rumor" | "seen").klog("gossip type")
+            gossip_type = ((random:integer(20) <= 14) => "rumor" | "seen").klog("gossip type")
             message = prepare_message(gossip_type).klog("message")
             valid = not peer.isnull() && not message.isnull()
         }
