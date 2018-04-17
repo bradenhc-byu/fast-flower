@@ -48,14 +48,14 @@ ruleset request_store {
 
         // Get the requests entity variable to view all requests available to this user
         requests = function(){
-            ent:requests
+            ent:requests.defaultsTo({})
         }
 
         // The unsent requests entity variable is used by the gossip protocol to get the next 
         // message to send. It essentially functions like a queue. This function gets the next
         // available message for the protocol to send.
         next_unsent_request = function(){
-            ent:unsent_requests.head()
+            ent:unsent_requests.defaultsTo([]).head()
         }
     }
 
@@ -74,8 +74,9 @@ ruleset request_store {
         }
         if not has_request.klog("has request") && valid.klog("within distance") then noop()
         fired {
-            ent:requests{request{"store_id"}} := {};
-            ent:requests{request{"store_id"}} := ent:requests{request{"store_id"}}.put(request{"id"}, request);
+            ent:requests := ent:requests.defaultsTo({});
+            ent:requests{request{"store_id"}} := ent:requests{request{"store_id"}}.defaultsTo({}).put(request{"id"}, request);
+            ent:unsent_requests := ent:unsent_requests.defaultsTo([]);
             ent:unsent_requests := ent:unsent_requests.append([request])
         } 
     }
@@ -143,7 +144,7 @@ ruleset request_store {
         }
         if request_to_dequeue then noop()
         fired {
-            ent:unsent_requests := ent:unsent_requests.tail()
+            ent:unsent_requests := ent:unsent_requests.defaultsTo([]).tail()
         }
 
     }
