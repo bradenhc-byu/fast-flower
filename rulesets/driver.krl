@@ -123,9 +123,9 @@ ruleset driver {
         pre {
             // get the eci of the store whose request we are accepting
             // we also need the id of the request
-            request = get_request(event:attr("store"), event:attr("delivery_id"))
-            store_eci = request{"store_eci"}
-            request_id = request{"id"}
+            request = get_request(event:attr("store"), event:attr("delivery_id")).klog("request")
+            store_eci = request{"store_eci"}.klog("store eci")
+            request_id = request{"id"}.klog("request id")
             valid = not store_eci.isnull() && not request_id.isnull()
         }
         if valid then
