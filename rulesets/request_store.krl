@@ -110,7 +110,7 @@ ruleset request_store {
             store_id = event:attr("store_id")
             delivery_id = event:attr("delivery_id")
         }
-        if not store_id.isnull() && not delivery_id.isull() then noop()
+        if not store_id.isnull() && not delivery_id.isnull() then noop()
         fired {
             raise delivery event "remove_request" attributes event:attrs
         }
@@ -126,7 +126,7 @@ ruleset request_store {
             store_id = event:attr("store_id")
             delivery_id = event:attr("delivery_id")
         }
-        if not store_id.isnull() && not delivery_id.isull() then noop()
+        if not store_id.isnull() && not delivery_id.isnull() then noop()
         fired {
             clear ent:requests{[store_id, delivery_id]}
         }
