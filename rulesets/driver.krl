@@ -42,7 +42,7 @@ ruleset driver {
                 },
                 {"domain": "driver",
                  "type": "complete_request",
-                 "attrs": [ "delivery_id" ]
+                 "attrs": [ "store", "delivery_id" ]
                 },
                 {"domain": "driver",
                  "type": "update_location",
