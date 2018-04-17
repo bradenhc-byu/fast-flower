@@ -31,8 +31,8 @@ ruleset google_maps {
 	rule start_up {
 		select when wrangler ruleset_added where rids >< meta:rid
 		fired {
-			ent:lat := 40;
-			ent:lng := -111;
+			ent:lat := 40.252524;
+			ent:lng := -111.667955;
 		}
 	}
 
