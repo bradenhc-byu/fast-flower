@@ -89,7 +89,7 @@ ruleset request_store {
         pre {
             // make sure we have the request 
             request = event:attr("request")
-            has_request = not ent:requests{[request{"store_id"}, request{"id"}]}
+            has_request = not ent:requests{[request{"store_id"}, request{"id"}]}.isnull()
         }
         if has_request then noop()
         fired {
