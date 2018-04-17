@@ -69,10 +69,10 @@ ruleset request_store {
             // make sure we don't already have that request
             request = event:attr("request")
             has_request = not ent:requests{[request{"store_id"}, request{"id"}]}
-            distance = maps:getDistanceFrom(request{"store_lat"}, request{"store_long"})
+            distance = maps:getDistanceFrom(request{"store_lat"}, request{"store_long"}).klog("gmaps distance")
             valid = distance{"value"} <= request{"allowed_distance"}.as("Number")
         }
-        if not has_request && valid then noop()
+        if not has_request.klog("has request") && valid.klog("within distance") then noop()
         fired {
             ent:requests{request{"store_id"}} := {};
             ent:requests{request{"store_id"}} := ent:requests{request{"store_id"}}.put(request{"id"}, request);
